@@ -1,0 +1,256 @@
+---
+title: "GLMs_Practical_3"
+author: "Zane Hassoun"
+date: "11/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# EIA <- read.csv('Documents/EIA.csv')
+EIA$impact <- as.factor(EIA$impact)
+EIA$MonthOfYear <- as.factor(EIA$MonthOfYear)
+EIA$Year <- as.factor(EIA$Year)
+attach(EIA)
+library(car)
+```
+## Question 1: 
+If the linear predictor for the fit.poisSqrt model is:
+ηit = β0 + β1x1it + ... + β26x26it
+and the coefficients are listed in the order of the output produced using the code above, which of the
+following describes the fit.poisSqrt model when the tide is ’Slack’, in Month 10 and Year 10?
+
+Answer: A) skips from 4 to 13 to 16
+
+## Question 2: Which of the following BEST fits the model 
+
+Answer: A) its a sqrt link not log link or log sqrt or exp
+```{r}
+#Fitting the model
+fit.poisSqrt <- glm(count ~ tidestate + observationhour + DayOfMonth + MonthOfYear +
+Year + x.pos + y.pos + Year:x.pos + Year:y.pos, data = EIA,
+family = poisson(link = 'sqrt'))
+#Getting a summary of the dataset to evaluate
+summary(fit.poisSqrt)
+```
+
+## Question 3 : If the linear predictor for the fit.pois model is:
+ηit = β0 + β1x1it + ... + β26x26it
+and the coefficients are listed in the order of the output produced using the code above, which of the
+following describes the fit.pois model when the tide is ’Flood’, in Month 1 and Year 12?
+
+Answer: A) Because it fits the numbers right
+
+Question 4: Which of the following BEST describes the fit.pois model?
+
+Answer: e) its a log model so to get it back exp of the log is your lambda. 
+
+```{r}
+#Fitting a new model link now is log link
+
+fit.pois <- glm(count ~ tidestate + observationhour + DayOfMonth + MonthOfYear + Year +
+x.pos + y.pos + Year:x.pos + Year:y.pos, data = EIA, family = poisson)
+#summarising the data
+
+x = 0:(length(fit.pois$coefficients)-1)
+View(print(data.frame(x,fit.pois$coefficients)))
+```
+
+Instruction: 
+Refit the Poisson model with a log link and an offset term (using area as an effort term) and check for
+collinearity using the VIF function
+
+Question 5 5. Which of the following about collinearity is FALSE? [1]
+Answer: A) I think but not sure could be  e) ask erik
+
+```{r}
+fit.pois_off <- glm(count ~ tidestate + observationhour + DayOfMonth + MonthOfYear + Year +
+x.pos + y.pos + Year:x.pos + Year:y.pos, data = EIA, offset=log(area), family = poisson)
+
+summary(fit.pois_off)
+vif(fit.pois_off)
+```
+Instructions: 
+Compare the AIC scores for the fit.pois, fit.poisSqrt, and fit.poisOff models.
+
+Question 6 Which of the following about these AIC results is FALSE? [1]
+
+Answer: e) I think but not sure
+```{r}
+AIC(fit.pois, fit.poisSqrt, fit.pois_off)
+```
+
+
+Instructions: 
+Carry out automated stepwise selection on the fit.poisOff governed by the AIC and BIC criteria:
+call these new models step.poisOff and step.poisOff_BIC respectively (as before set direction =
+"both").
+Question 7: Based on these stepwise-selection results, which of the following is FALSE?
+
+Answer: d) only two categories for tidestate
+```{r}
+#Step function for AIC
+small_step_AIC = step(fit.pois_off, direction = "both")
+step.poisOFF = glm(count ~ tidestate + observationhour + MonthOfYear + Year + x.pos + 
+    y.pos + Year:x.pos + Year:y.pos, data = EIA, offset=log(area), family = poisson)
+```
+
+```{r}
+#Step Function for BIC
+small_step_BIC = step(fit.pois_off, direction = "both", k = log(nrow(EIA)))
+step.poisOff_BIC = glm(count ~ tidestate + observationhour + MonthOfYear + Year + x.pos + 
+    y.pos + Year:x.pos + Year:y.pos, offset=log(area), family = poisson)
+```
+
+Instructions: Perform likelihood ratio test results using the Anova function for the step.poisOff_BIC model. 
+
+Queston 8: Based on these results, which of the following is FALSE?
+
+Answer: c) C is wrong anova gives us the type two tests its quite different. 
+
+```{r}
+Anova(step.poisOff_BIC)
+```
+Instructions:Carry out all-possible-subsets selection on the step.poisOff_BIC model using the dredge function and
+the default ranking criteria. 
+
+Question 9: Based on these results, which of the following is FALSE?
+
+Answer: a) or b) compare with erik 
+
+```{r}
+library(MuMIn)
+options(na.action='na.fail')
+dredged_model = dredge(step.poisOff_BIC)
+dredged_model
+```
+
+Question 10: Based on the step.poisOff_BIC model results, which of the following is FALSE? 
+```{r}
+summary(step.poisOff_BIC)
+```
+
+Question 11: Based on the step.poisOff_BIC model, what is the predicted value on the scale of the response, when
+tidestate=EBB, observationhour=10, month=1, year=11, x.pos=-2061, y.pos=-1158 and the area of the
+cell is the mean of the area of all cells in the EIA data set? Report your answer to 3 decimal places.
+
+```{r}
+prediction_df = data.frame(tidestate=as.factor("EBB"),
+                           observationhour=10,
+                           MonthOfYear = c(as.factor("1"), as.factor("5")),
+                           Year = as.factor("11"),
+                           x.pos=-2061, 
+                           y.pos=-1158, 
+                           area = mean(EIA$area))
+
+
+predictions = predict.glm(step.poisOff_BIC,prediction_df)
+exp(predictions)
+```
+Question 12: Based on the step.poisOff_BIC model, what is the ratio of the predicted numbers in month 5 compared
+to predicted numbers in month 1? Report your answer to 3 decimal places.
+
+
+# Section 2 of the practical Modelling Overdispersed Models
+
+Instructions Check for overdispersion in the step.poisOff_BIC model using family=quasipoisson. Call this new model step.poisOffOD. 
+Question 13: Based on these results, what is the estimated dispersion parameter? Report your
+result to one decimal place
+
+15.1102
+
+```{r}
+step.poisOffOD = glm(count ~ tidestate + observationhour + MonthOfYear + Year + x.pos + 
+    y.pos + Year:x.pos + Year:y.pos, offset=log(area), family = quasipoisson())
+
+summary(step.poisOffOD)
+```
+
+
+Instructions: Compare the p-values with the overdispersed model with the p-values obtained under a strictly Poisson model (when the dispersion parameter=1).
+
+Question 14: Which of the following is FALSE?
+
+Answer: c) This is false because there is no proper distrubtion so LRT doesnt actually exist
+
+```{r}
+summary(step.poisOff_BIC)
+```
+```{r}
+summary(step.poisOffOD)
+```
+15. Based on the overdispersed results, is the following statement TRUE or FALSE? 
+
+Answer: TRUE
+
+# Section 2.3 Model Diagnostics
+
+Instructions: In this section we are going to:
+• Assess any residual patterns using the residualPlots function in the car library
+• Check for any correlation present in the residuals.
+• Assess what we have learned from this modelling process with reference to our research questions.
+Based on the analysis from the previous section update your model dropping insignificant covariates and/or
+interaction terms.
+
+
+Question 16: Using the residualPlots function in the car library in R, which of the following statements about linearity
+is TRUE?
+
+Answer: c) i think
+```{r}
+residualPlots(step.poisOffOD)
+```
+
+Instructions: Make a plot of observed vs fitted. 
+
+Question 17: Which of the following statements is FALSE?
+
+Answer: c) is false cuz we did log transform so there cant be
+```{r}
+library(ggplot2)
+plot_dta_17 = data.frame("Observations" = EIA$count, "Fitted_Values" = step.poisOffOD$fitted.values)
+
+ggplot(data = plot_dta_17, aes(x = Observations, y = Fitted_Values)) + 
+  geom_point()+geom_abline(intercept=0,slope=1,color="red")
+```
+
+
+```{r}
+phi_hat = summary(step.poisOffOD)$dispersion
+scaled_resid =  (EIA$count-plot_dta_17$Fitted_Values)/sqrt(phi_hat*plot_dta_17$Fitted_Values)
+
+ggplot(data = plot_dta_17, aes(x = Fitted_Values, y = scaled_resid))+
+         geom_point()
+
+```
+Instructions: Use acf plots to determine the nature of any scaled residual correlation present. 
+
+Question 19: Which of the following statements is FALSE?
+
+Answer: b) I think by deduction but idk 
+```{r}
+par(mfrow =c(1,2))
+set.seed(5)
+acf(rnorm(length(scaled_resid)), lag.max = 40, main = "Ideal correlation")
+acf(scaled_resid, main = "Actual correlation")
+```
+Question 20: Which of the following about summarising our model is FALSE?
+
+Answer: c) or e) check with erik
+```{r}
+summary(step.poisOffOD)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
