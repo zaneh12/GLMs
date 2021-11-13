@@ -116,7 +116,7 @@ the default ranking criteria.
 
 Question 9: Based on these results, which of the following is FALSE?
 
-Answer: a) or b) compare with erik 
+Answer: a)
 
 ```{r}
 library(MuMIn)
@@ -126,6 +126,8 @@ dredged_model
 ```
 
 Question 10: Based on the step.poisOff_BIC model results, which of the following is FALSE? 
+
+Answer: D)
 ```{r}
 summary(step.poisOff_BIC)
 ```
@@ -150,6 +152,7 @@ exp(predictions)
 Question 12: Based on the step.poisOff_BIC model, what is the ratio of the predicted numbers in month 5 compared
 to predicted numbers in month 1? Report your answer to 3 decimal places.
 
+0.81
 
 # Section 2 of the practical Modelling Overdispersed Models
 
@@ -171,7 +174,7 @@ Instructions: Compare the p-values with the overdispersed model with the p-value
 
 Question 14: Which of the following is FALSE?
 
-Answer: c) This is false because there is no proper distrubtion so LRT doesnt actually exist
+Answer: B) 
 
 ```{r}
 summary(step.poisOff_BIC)
@@ -227,7 +230,7 @@ Instructions: Use acf plots to determine the nature of any scaled residual corre
 
 Question 19: Which of the following statements is FALSE?
 
-Answer: b) I think by deduction but idk 
+Answer: C) 
 ```{r}
 par(mfrow =c(1,2))
 set.seed(5)
@@ -236,7 +239,7 @@ acf(scaled_resid, main = "Actual correlation")
 ```
 Question 20: Which of the following about summarising our model is FALSE?
 
-Answer: c) or e) check with erik
+Answer: E)
 ```{r}
 summary(step.poisOffOD)
 ```
